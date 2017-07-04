@@ -2,10 +2,8 @@
 
 const logger = require('log4js').getLogger('requester');
 const { EventEmitter } = require('events');
-const net = require('net');
+const { Socket } = require('net');
 const Miner = require('./miner');
-const moment = require('moment');
-require("moment-duration-format");
 
 class Requester extends EventEmitter {
     constructor(config, miner) {
@@ -13,24 +11,68 @@ class Requester extends EventEmitter {
         if(!miner instanceof Miner) return logger.error("Tried to init requester on an invalid miner object!");
         
         this.miner = miner;
-        this.socket = new net.Socket();
+        this.socket = new Socket();
 
         this.reqCnt = 0;
         this.rspCnt = 0;
 
+        this.errored = false;
+        this.timedout = false;
+        
         // Config shiet
         this.poll = miner.poll ? miner.poll : config.miner_poll;
         this.timeout = miner.timeout ? miner.timeout : config.miner_timeout;
 
-        this.connect = this.connect.bind(this);
+        //this.should_reconnect = true;
+
+        //this.connect = this.connect.bind(this);
 
         this._initSocketEvents();
     }
 
+    /**
+     * Start the requester, by default the requester
+     * will make a request every 5 seconds with the
+     * miner and emit it's data, this can be changed
+     * in the config, or by directly changing the
+     * requester.poll time.
+     * @deprecated
+     */
+    start() {
+        throw new Error('This method is not supported anymore!');
+        //this.should_reconnect = true;
+        //this._connect();
+    }
+
+    /**
+     * Stop the requester, this will also stop the polling
+     * @deprecated
+     */
+    stop() {
+        throw new Error('This method is not supported anymore!');
+        // Little trick to let our socket not reconnect
+        //this.should_reconnect = false;
+        //this._disconnect();
+    }
+
+    /**
+     * Connects to the miner
+     */
     connect() {
         this.socket.connect(this.miner.port, this.miner.host);
     }
 
+    /**
+     * Force disconnects from the miner
+     */
+    disconnect() {
+        this.socket.destroy();
+    }
+
+    /**
+     * Initializes all socket events
+     * @private
+     */
     _initSocketEvents() {
         this.socket
             .on('connect', () => {
@@ -48,26 +90,17 @@ class Requester extends EventEmitter {
             .on('timeout', () => {
                 logger.warn(this.miner.name + ': response timeout');
                 this.socket.destroy();
-                
-                this.emit('data', {
-                    "name"       : this.miner.name,
-                    "host"       : this.miner.hostname,
-                    "uptime"     : "",
-                    "eth"        : "",
-                    "dcr"        : "",
-                    "eth_hr"     : "",
-                    "dcr_hr"     : "",
-                    "temps"      : "",
-                    "pools"      : "",
-                    "ver"        : "",
-                    "target_eth" : "",
-                    "target_dcr" : "",
-                    //"comments"   : c.comments,
-                    //"offline"    : c.offline,
-                    "warning"    : null,
-                    "error"      : 'Error: no response',
-                    "last_seen"  : this.last_seen ? this.last_seen : 'never'
-                });
+
+                if(!this.timedout) {
+                    this.emit('s-timeout', {
+                        "name"       : this.miner.name,
+                        "host"       : this.miner.hostname,
+                        "error"      : 'Error: no response',
+                        "last_seen"  : this.miner.last_seen
+                    });
+                }
+
+                this.timedout = true;
             })
 
             .on('data', data => {
@@ -76,30 +109,28 @@ class Requester extends EventEmitter {
                 
                 logger.trace(`${this.miner.name}: rsp[${this.rspCnt}]: ${data.toString().trim()}`);
                 
-                this.last_seen = moment().format("YYYY-MM-DD HH:mm:ss");
+                this.miner.last_seen = new Date();//moment().format("YYYY-MM-DD HH:mm:ss");
                 
                 this.socket.setTimeout(0);
 
                 let d = JSON.parse(data);
                 
-                this.emit('data', {
+                this.emit('s-data', {
                     "name"       : this.miner.name,
                     "host"       : this.miner.hostname,
-                    "uptime"     : moment.duration(parseInt(d.result[1]), 'minutes').format('d [days,] hh:mm'),
+                    //"uptime"     : moment.duration(parseInt(d.result[1]), 'minutes').format('d [days,] hh:mm'),
+                    "uptime"     : d.result[1],
                     "eth"        : d.result[2],
                     "dcr"        : d.result[4],
                     "eth_hr"     : d.result[3],
                     "dcr_hr"     : d.result[5],
                     "temps"      : d.result[6],
                     "pools"      : d.result[7],
-                    "ver"        : d.result[0],
-                    //"target_eth" : c.target_eth,
-                    //"target_dcr" : c.target_dcr,
-                    //"comments"   : c.comments,
-                    //"offline"    : c.offline,
-                    //"ti"         : c.ti ? c.ti : null,
-                    "error"      : null
+                    "ver"        : d.result[0] 
                 });
+
+                this.timedout = false;
+                this.errored = false;
 
                 /*if (c.target_eth && config.tolerance) {
                     if (miners.json[i].eth.split(';')[0] / 1000 < c.target_eth * (1 - config.tolerance / 100)) {
@@ -114,30 +145,23 @@ class Requester extends EventEmitter {
 
             .on('close', () => {
                 logger.info(`${this.miner.name}: connection closed`);
-                setTimeout(this.connect.bind(this), this.poll);
+                /*if(this.should_reconnect)
+                    setTimeout(this._connect.bind(this), this.poll);*/
             })
 
             .on('error', err => {
-                logger.error(`${this.miner.name}: socket error:  ${this.miner.message}`);
-                this.emit('data', {
-                    "name"       : this.miner.name,
-                    "host"       : this.miner.hostname,
-                    "uptime"     : "",
-                    "eth"        : "",
-                    "dcr"        : "",
-                    "eth_hr"     : "",
-                    "dcr_hr"     : "",
-                    "temps"      : "",
-                    "pools"      : "",
-                    "ver"        : "",
-                    //"target_eth" : "",
-                    //"target_dcr" : "",
-                    //"comments"   : c.comments,
-                    //"offline"    : c.offline,
-                    "warning"    : null,
-                    "error"      : `${this.miner.name}: ${err.message}`,
-                    "last_seen"  : this.last_seen ? this.last_seen : 'never'
-                });
+                logger.error(`${this.miner.name}: socket error:  ${err.message}`);
+                
+                //if(!this.errored) {
+                    this.emit('s-error', {
+                        "name"       : this.miner.name,
+                        "host"       : this.miner.hostname,
+                        "error"      : err.message,
+                        "last_seen"  : this.miner.last_seen
+                    });
+                //}
+
+                //this.errored = true;
             });
     }
 }

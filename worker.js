@@ -10,63 +10,85 @@ class Worker {
     constructor(config) {
         this.config = config;
 
-        //this.observer = new Observer();
         this.backend = null;
         this.miner = new Miner(this.config.miner);
         this.requester = new Requester(this.config, this.miner);
     }
 
     start() {
-        //this._initObserver();
-
-        //this._initRequester();
+        logger.info(`Starting worker...`);
         this._initBackend();
     }
 
     _initBackend() {
-        this.backend = io(this.config.backend.host);
-
-        this.backend.on('connect', () => {
-            this.backend.emit('identify', {
+        this.backend = io(this.config.backend.host, {
+            query: {
                 name: this.config.miner.name,
-                key: 'arandomkey...'
-            });
+                wallet: this.config.miner.wallet,
+                secret: 'arandomkey...'
+            }
+        });
 
-            this.backend.on('identified', () => {
-                this._initRequester();
-            })
+        this.backend.on('connect', this.onBackendConnect.bind(this));
+
+        this.backend.on('heartbeat', this.onBackendHeartbeat.bind(this));
+
+        this.backend.on('error', err => {
+            logger.error(err);
         })
+
+        this.backend.on('disconnect', this.onBackendDisconnected.bind(this));
     }
 
-    _initRequester() {
-        logger.info("PLS CONNECT NAW!");
+    /**
+     * Handles the connect event
+     * @event 'connect'
+     */
+    onBackendConnect() {
+        logger.info(`Connected to backend ${this.config.backend.host}`);
+
+        //this.requester.connect();
+
+        this.requester
+            .on('s-timeout', data => {
+                this.backend.emit('m-timeout', data);
+            })
+            .on('s-data', data => {
+                this.backend.emit('m-stats', data);
+            })
+            .on('s-error', data => {
+                this.backend.emit('m-error', data);
+            });
+    }
+
+    /**
+     * Handles the heartbeat event
+     * @event 'heartbeat'
+     */
+    onBackendHeartbeat() {
+        logger.info(`Received heartbeat, requesting stats`);
+        // TODO: For this to work the requester has to be rewritten a little bit, currently
+        // the requester will request every 5000 ms. From now on the backend will tell
+        // the worker when to send new information aka on each heartbeat.
+        // Example how the requester will work
+        // <help xD>idkkkk</help xD>
         this.requester.connect();
-
-        this.requester.on('data', data => {
-            //logger.trace(data);
-            this.backend.emit('data', data);
-        })
     }
 
-    _initObserver() {
-        this.observer.addWatcher(path.join(__dirname, '..', path.sep));
+    /**
+     * Handles the disconnect event
+     * @event 'disconnect'
+     */
+    onBackendDisconnected() {
+        // CLEANUP!
+        logger.info(`Disconnected from backend ${this.config.backend.host}`);
 
-        this.observer
-            .on('w-add', data => {
-                if(data.path.indexOf('_log.txt') > -1) {
-                    console.log(`[Watcher#${data.id}] File ${data.path} has been added`);
-                }
-            })
-            .on('w-change', data => {
-                if(data.path.indexOf('_log.txt') > -1) {
-                    console.log(`[Watcher#${data.id}] File ${data.path} has been changed`);
-                }
-            })
-            .on('w-unlink', data => {
-                if(data.path.indexOf('_log.txt') > -1) {
-                    console.log(`[Watcher#${data.id}] File ${data.path} has been removed`);
-                }
-            });
+        this.requester.removeAllListeners();
+
+        //this.logger.info(`Cleaning up our mess`);
+
+        //console.log(this.backend.hasListeners('');
+
     }
 }
 
