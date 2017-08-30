@@ -2,7 +2,7 @@
 
 const logger = require('log4js').getLogger('worker');
 const path = require('path');
-const Miner = require('./miner');
+const Miner = require('./model/miner');
 const Requester = require('./requester');
 const io = require('socket.io-client');
 

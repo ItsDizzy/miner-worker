@@ -17,9 +17,9 @@ try {
 const miner = new Miner(config);
 miner.start();
 
-setTimeout(() => {
+/*setTimeout(() => {
     miner.stop();
-}, 5000);
+}, 5000);*/
 
-//let worker = new Worker(config);
-//worker.start();
+let worker = new Worker(config);
+worker.start();
