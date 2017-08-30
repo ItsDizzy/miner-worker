@@ -3,7 +3,7 @@
 const logger = require('log4js').getLogger('requester');
 const { EventEmitter } = require('events');
 const { Socket } = require('net');
-const Miner = require('./miner');
+const Miner = require('./model/miner');
 
 class Requester extends EventEmitter {
     constructor(config, miner) {
