@@ -73,6 +73,14 @@ assert-plus@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/assert-plus/-/assert-plus-0.2.0.tgz#d74e1b87e7affc0db8aadb7021f3fe48101ab234"
 
+asteroid@^2.0.3:
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/asteroid/-/asteroid-2.0.3.tgz#f07807e3d53f3759c46ea4a5d12546a7b1bc14e3"
+  dependencies:
+    ddp.js "^2.2.0"
+    lodash.assign "^4.2.0"
+    wolfy87-eventemitter "^5.1.0"
+
 async-each@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/async-each/-/async-each-1.0.1.tgz#19d386a1d9edc6e7c1c85d388aedbcc56d33602d"
@@ -247,6 +255,12 @@ dashdash@^1.12.0:
 date-format@^0.0.0:
   version "0.0.0"
   resolved "https://registry.yarnpkg.com/date-format/-/date-format-0.0.0.tgz#09206863ab070eb459acea5542cbd856b11966b3"
+
+ddp.js@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/ddp.js/-/ddp.js-2.2.0.tgz#8ff0507428fdcaafd4777bd6f29cf23fdef75f95"
+  dependencies:
+    wolfy87-eventemitter "^4.3.0"
 
 debug@^0.7.2:
   version "0.7.4"
@@ -772,6 +786,10 @@ lodash.assign@^3.0.0:
     lodash._baseassign "^3.0.0"
     lodash._createassigner "^3.0.0"
     lodash.keys "^3.0.0"
+
+lodash.assign@^4.2.0:
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/lodash.assign/-/lodash.assign-4.2.0.tgz#0d99f3ccd7a6d261d19bdaeb9245005d285808e7"
 
 lodash.defaults@^3.1.2:
   version "3.1.2"
@@ -1437,6 +1455,14 @@ wide-align@^1.1.0:
   dependencies:
     string-width "^1.0.2"
 
+wolfy87-eventemitter@^4.3.0:
+  version "4.3.0"
+  resolved "https://registry.yarnpkg.com/wolfy87-eventemitter/-/wolfy87-eventemitter-4.3.0.tgz#6497396c95e74359f06b6e35409339318d8d964f"
+
+wolfy87-eventemitter@^5.1.0:
+  version "5.2.2"
+  resolved "https://registry.yarnpkg.com/wolfy87-eventemitter/-/wolfy87-eventemitter-5.2.2.tgz#9cb8e58f6d53814602b91128dd81cad090197a4d"
+
 wrappy@1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/wrappy/-/wrappy-1.0.2.tgz#b5243d8f3ec1aa35f1364605bc0d1036e30ab69f"
@@ -1448,6 +1474,13 @@ write-file-atomic@^1.1.2:
     graceful-fs "^4.1.11"
     imurmurhash "^0.1.4"
     slide "^1.1.5"
+
+ws@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-3.1.0.tgz#8afafecdeab46d572e5397ee880739367aa2f41c"
+  dependencies:
+    safe-buffer "~5.1.0"
+    ultron "~1.1.0"
 
 ws@~2.3.1:
   version "2.3.1"

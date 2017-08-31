@@ -6,18 +6,79 @@ const Miner = require('./model/miner');
 const Requester = require('./requester');
 const io = require('socket.io-client');
 
+const WebSocket = require('ws');
+const { createClass } = require('asteroid');
+const Asteroid = createClass();
+
 class Worker {
     constructor(config) {
         this.config = config;
 
-        this.backend = null;
+        // Connection with Meteor Backend
+        this.asteroid = null;
+
+        // TODO: Move start and stop functions from the non
+        // miner model to the miner model,
+        // also move the requester to the miner
         this.miner = new Miner(this.config.miner);
         this.requester = new Requester(this.config, this.miner);
     }
 
     start() {
         logger.info(`Starting worker...`);
-        this._initBackend();
+
+        this.setupAsteroid();
+    }
+
+    setupAsteroid() {
+        const { endpoint, email, password } = this.config.backend;
+        //const { name, wallet } = this.config.miner;
+
+        // Connect with the backend
+        this.asteroid = new Asteroid({
+            endpoint,
+            SocketConstructor: WebSocket
+        });
+
+        // We need this in order to know if we should stop/start
+        // We do this by tracking the Worker.running variable
+        this.asteroid.subscribe('Worker.currentWorker', this.config.workerId);
+
+        this.asteroid.ddp.on('added', doc => {
+            if(doc.collection === 'workers') {
+                this.handleWorkerDocUpdate(doc);
+            }
+        });
+
+        this.asteroid.ddp.on('changed', doc => {
+            if(doc.collection === 'workers') {
+                this.handleWorkerDocUpdate(doc);
+            }
+        });
+
+        this.asteroid.ddp.on('connected', () => {
+            logger.info(`[ddp]: Connected with backend ${endpoint}`);
+
+            this.asteroid.loginWithPassword({email, password})
+                .catch(err => {
+                    logger.error(err);
+                });
+        });
+
+        this.asteroid.ddp.on('loggedIn', () => {
+            logger.info(`[ddp]: Successfully logged in :)`);
+
+            this.asteroid.call('getWorker', this.config.workerId);
+        });
+    }
+
+    handleWorkerDocUpdate(doc) {
+        // Sync up our miner with backend
+        if(doc.fields.running && !this.miner.isRunning) {
+            this.miner.start();
+        } else if(!doc.fields.running && this.miner.isRunning) {
+            this.miner.stop();
+        }
     }
 
     _initBackend() {
@@ -93,149 +154,3 @@ class Worker {
 }
 
 module.exports = Worker;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//const { spawn } = require('child_process');
-// const Scriptable = require('./scriptable');
-// const path = require('path');
-// const pty = require('pty.js');
-
-// const wallet = '0x8e484c67ea367e05040aab0b4d80e1e366da0b1d';
-// const worker = 'DizzyW';
-// const email = 'luukwauben@hotmail.nl';
-
-// const term = pty.spawn(path.join(__dirname, '..', path.sep, 'Ethereum Claymore Miner v9.3', 'EthDcrMiner64.exe'), [
-//     '-epool', 'eth-eu1.nanopool.org:9999',
-//     '-ewal', `${wallet}/${worker}/${email}`,
-//     '-epsw', 'x',
-//     '-mode', '1',
-//     '-ftime', '10'
-// ], {
-//   name: 'xterm-color',
-//   cols: 80,
-//   rows: 30,
-//   cwd: process.cwd(),
-//   env: process.env
-// });
-
-// term.on('data', function(data) {
-//   console.log(data);
-// });
-
-/*const defaults = {
-  cwd: path.join(process.cwd(), '..', path.sep, 'Ethereum Claymore Miner v9.3'),
-  env: process.env
-};*/
-
-// const scriptable = new Scriptable();
-
-// scriptable.runCommand(path.join(__dirname, '..', path.sep, 'Ethereum Claymore Miner v9.3', 'EthDcrMiner64.exe'), [
-//     '-epool', 'eth-eu1.nanopool.org:9999',
-//     '-ewal', `${wallet}/${worker}/${email}`,
-//     '-epsw', 'x',
-//     '-mode', '1',
-//     '-ftime', '10'
-// ]);
-
-// scriptable.stdout.on('data', (data) => {
-//     console.log(data);
-// })
-
-// const miner = spawn(path.join(__dirname, '..', path.sep, 'Ethereum Claymore Miner v9.3', 'EthDcrMiner64.exe'), [
-//     '-epool', 'eth-eu1.nanopool.org:9999',
-//     '-ewal', `${wallet}/${worker}/${email}`,
-//     '-epsw', 'x',
-//     '-mode', '1',
-//     '-ftime', '10'
-// ], {
-//     stdio: [0, 1, 2]
-// });
-
-//miner.stdout.pipe(process.stdout);
-
-/*miner.stdout.on('data', (data) => {
-  console.log(`stdout: ${data}`);
-});*/
-
-/*miner.stderr.on('data', (data) => {
-  console.log(`stderr: ${data}`);
-});
-
-miner.on('close', (code) => {
-  console.log(`child process exited with code ${code}`);
-});
-*/

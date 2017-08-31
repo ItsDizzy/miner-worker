@@ -14,12 +14,12 @@ try {
 }
 
 // Some internal tests since the backend does not support our start/stop system yet
-const miner = new Miner(config);
-miner.start();
+// const miner = new Miner(config);
+// miner.start();
 
-/*setTimeout(() => {
-    miner.stop();
-}, 5000);*/
+// setTimeout(() => {
+//     miner.stop();
+// }, 5000);
 
 let worker = new Worker(config);
 worker.start();
