@@ -1,38 +1,47 @@
-'use strict';
+import { getLogger } from 'log4js';
+import path from 'path';
+import Miner from './Miner';
+import Requester from './Requester';
 
-const logger = require('log4js').getLogger('worker');
-const path = require('path');
-const Miner = require('./miner');
-const Requester = require('./requester');
-const io = require('socket.io-client');
+import WebSocket from 'ws';
+import { createClass } from 'asteroid';
 
-const WebSocket = require('ws');
-const { createClass } = require('asteroid');
 const Asteroid = createClass();
+const logger = getLogger('worker');
 
-class Worker {
+export default class Worker {
+
+    /**
+     * Asteroid Client
+     * 
+     * This client is used to connect
+     * with our Meteor Backend (miner-backend)
+     * 
+     * @type {Asteroid}
+     */
+    asteroid = null;
+
     constructor(config) {
         this.config = config;
 
-        // Connection with Meteor Backend
-        this.asteroid = null;
-
-        // TODO: Move start and stop functions from the non
-        // miner model to the miner model,
-        // also move the requester to the miner
         this.miner = new Miner(this.config);
         this.requester = new Requester(this.config, this.miner);
     }
 
+    /**
+     * Starts the whole worker
+     */
     start() {
         logger.info(`Starting worker...`);
 
         this.setupAsteroid();
     }
 
+    /**
+     * Sets up the connection with the backend
+     */
     setupAsteroid() {
         const { endpoint, email, password } = this.config.backend;
-        //const { name, wallet } = this.config.miner;
 
         // Connect with the backend
         this.asteroid = new Asteroid({
@@ -68,37 +77,26 @@ class Worker {
         this.asteroid.on('loggedIn', () => {
             logger.info(`[ddp]: Successfully logged in :)`);
 
-            this.asteroid.call('getWorker', this.config.workerId).catch(logger.error);
+            this.asteroid.call('getWorker', this.config.workerId);
         });
     }
 
-    handleWorkerDocUpdate(doc) {
+    handleWorkerDocUpdate({fields: { running, name, wallet, email }}) {
         // Sync up our miner with backend
-        if(doc.fields.running && !this.miner.isRunning) {
+        if(running && !this.miner.isRunning) {
             this.miner.start();
-        } else if(!doc.fields.running && this.miner.isRunning) {
+        } else if(!running && this.miner.isRunning) {
             this.miner.stop();
         }
-    }
 
-    _initBackend() {
-        this.backend = io(this.config.backend.host, {
-            query: {
-                name: this.config.miner.name,
-                wallet: this.config.miner.wallet,
-                secret: 'arandomkey...'
-            }
-        });
-
-        this.backend.on('connect', this.onBackendConnect.bind(this));
-
-        this.backend.on('heartbeat', this.onBackendHeartbeat.bind(this));
-
-        this.backend.on('error', err => {
-            logger.error(err);
-        })
-
-        this.backend.on('disconnect', this.onBackendDisconnected.bind(this));
+        // Setup miner information
+        // Information should only be
+        // changed when miner is not running
+        if(!this.miner.isRunning) {
+            this.miner.setName(name);
+            this.miner.setWallet(wallet);
+            this.miner.setEmail(email);
+        }
     }
 
     /**
@@ -152,5 +150,3 @@ class Worker {
 
     }
 }
-
-module.exports = Worker;

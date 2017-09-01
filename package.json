@@ -4,8 +4,8 @@
   "description": "KEK",
   "main": "index.js",
   "scripts": {
-    "start": "node index",
-    "dev": "nodemon index",
+    "start": "node -r babel-register ./src/index",
+    "dev": "cross-env NODE_ENV=development node -r babel-register ./src/index",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Dizzy <itsdizzy40@gmail.com>",
@@ -13,10 +13,16 @@
   "dependencies": {
     "asteroid": "^2.0.3",
     "log4js": "^1.1.1",
-    "socket.io-client": "^2.0.3",
     "ws": "^3.1.0"
   },
   "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-plugin-dynamic-import-webpack": "^1.0.1",
+    "babel-preset-env": "^1.6.0",
+    "babel-preset-stage-0": "^6.24.1",
+    "babel-register": "^6.26.0",
+    "cross-env": "^5.0.5",
     "nodemon": "^1.11.0"
   }
 }

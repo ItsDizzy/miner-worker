@@ -1,7 +1,9 @@
-const { spawn } = require('child_process');
-const logger = require('log4js').getLogger('manager');
+import { spawn } from 'child_process';
+import { getLogger } from 'log4js';
 
-class ProcessManager {
+const logger = getLogger('manager');
+
+export default class ProcessManager {
   constructor() {
     this.stdin = process.stdin;
     this.stdout = process.stdout;
@@ -20,5 +22,3 @@ class ProcessManager {
     child.kill();
   }
 }
-
-module.exports = ProcessManager;

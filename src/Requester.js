@@ -1,11 +1,11 @@
-'use strict';
+import { getLogger } from 'log4js';
+import { EventEmitter } from 'events';
+import { Socket } from 'net';
+import Miner from './Miner';
 
-const logger = require('log4js').getLogger('requester');
-const { EventEmitter } = require('events');
-const { Socket } = require('net');
-const Miner = require('./model/miner');
+const logger = getLogger('requester');
 
-class Requester extends EventEmitter {
+export default class Requester extends EventEmitter {
     constructor(config, miner) {
         super();
         if(!miner instanceof Miner) return logger.error("Tried to init requester on an invalid miner object!");
@@ -165,5 +165,3 @@ class Requester extends EventEmitter {
             });
     }
 }
-
-module.exports = Requester;
