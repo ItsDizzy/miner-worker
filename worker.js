@@ -2,7 +2,7 @@
 
 const logger = require('log4js').getLogger('worker');
 const path = require('path');
-const Miner = require('./model/miner');
+const Miner = require('./miner');
 const Requester = require('./requester');
 const io = require('socket.io-client');
 
@@ -20,7 +20,7 @@ class Worker {
         // TODO: Move start and stop functions from the non
         // miner model to the miner model,
         // also move the requester to the miner
-        this.miner = new Miner(this.config.miner);
+        this.miner = new Miner(this.config);
         this.requester = new Requester(this.config, this.miner);
     }
 
@@ -38,7 +38,7 @@ class Worker {
         this.asteroid = new Asteroid({
             endpoint,
             SocketConstructor: WebSocket
-        });
+        })
 
         // We need this in order to know if we should stop/start
         // We do this by tracking the Worker.running variable
@@ -65,10 +65,10 @@ class Worker {
                 });
         });
 
-        this.asteroid.ddp.on('loggedIn', () => {
+        this.asteroid.on('loggedIn', () => {
             logger.info(`[ddp]: Successfully logged in :)`);
 
-            this.asteroid.call('getWorker', this.config.workerId);
+            this.asteroid.call('getWorker', this.config.workerId).catch(logger.error);
         });
     }
 
