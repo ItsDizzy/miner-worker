@@ -2,9 +2,6 @@
     "miner_poll": 5000,
     "miner_timeout": 1000,
     "miner": {
-        "wallet": "yourwallet",
-        "email": "youremail",
-        "name": "workername",
         "host": "127.0.0.1",
         "port": 3333
     },
