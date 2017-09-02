@@ -93,9 +93,17 @@ export default class Worker {
         // Information should only be
         // changed when miner is not running
         if(!this.miner.isRunning) {
-            this.miner.setName(name);
-            this.miner.setWallet(wallet);
-            this.miner.setEmail(email);
+            if(name && name !== this.miner.name) {
+                this.miner.setName(name);
+            }
+
+            if(wallet && wallet !== this.miner.wallet) {
+                this.miner.setWallet(wallet);
+            }
+
+            if(email && email !== this.miner.email) {
+                this.miner.setEmail(email);
+            }
         }
     }
 
