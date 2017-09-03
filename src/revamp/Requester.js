@@ -90,34 +90,57 @@ export default class Requester {
         // Convert the data to json first
         let data = data.toJSON();
 
-        let hrAndShares = data.result[2].split(';');
-
-        function getGpuTempsAndFanSpeeds(array) {
-          return array.reduce((result, value, index, array) => {
+        /**
+         * Formats the hashrate and temp/fanspeed array
+         * into a nice array of gpu stats
+         * 
+         * @example An example of what it can return.
+         * ```
+         * [
+         *  { hashrate: '30502', temp: '53', fanSpeed: '71' },
+         *  { hashrate: '30457', temp: '57', fanSpeed: '67' },
+         *  { hashrate: '30297', temp: '61', fanSpeed: '72' },
+         *  { hashrate: '30481', temp: '55', fanSpeed: '70' },
+         *  { hashrate: '30479', temp: '59', fanSpeed: '71' },
+         *  { hashrate: '30505', temp: '61', fanSpeed: '70' }
+         * ]
+         * ```
+         * 
+         * @param {Array} hashrates 
+         * @param {Array} tempFanArray 
+         */
+        function getGpus(hashrates, tempFanArray) {
+          const pairs = tempFanArray.reduce((result, value, index, array) => {
             if(index % 2 === 0) {
-              let pair = array.slice(index, index + 2);
-              result.temps.push(pair[0]);
-              result.fanSpeeds.push(pair[1]);
+              result.push(array.slice(index, index + 2));
             }
             return result;
-          }, {
-            temps:[],
-            fanSpeeds:[]
-          });
+          }, []);
+
+          return pairs.map((pair, index) => {
+            return {
+              hashrate: hashrates[index],
+              temp: pair[0],
+              fanSpeed: pair[1]
+            }
+          })
+        };
+
+        function getHashrateAndShares(hrAndShares) {
+          return {
+            hashrate: hrAndShares[0],
+            shares: {
+              total: hrAndShares[1],
+              rejected: hrAndShares[2]
+            }
+          }
         }
 
         const result = {
           version: data.result[0],
           uptime: data.result[1],
-          hashrate: {
-            total: hrAndShares[3],
-            gpus: data.result[2].split(';'),
-          },
-          shares: {
-            total: hrAndShares[2],
-            rejected: hrAndShares[3]
-          },
-          ...getGpuTempsAndFanSpeeds(data.result[6].split(';')),
+          gpus: getGpus(data.result[3].split(';'), data.result[6].split(';')),
+          ...getHashrateAndShares(data.result[2].split(';')),
           pools: data.result[7].split(';')
         }
 
