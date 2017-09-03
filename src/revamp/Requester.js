@@ -1,6 +1,5 @@
 import { getLogger } from 'log4js';
 import { Socket } from 'net';
-import Miner from './Miner';
 
 const logger = getLogger('requester');
 
@@ -34,7 +33,8 @@ export default class Requester {
   resCount = 0;
 
   constructor(options) {
-    this.config = Object.assign(options, {
+    //console.log(options.onData("test"));
+    this.config = Object.assign({
       host: '127.0.0.1',
       port: 3333,
       timeout: 1000,
@@ -46,9 +46,17 @@ export default class Requester {
       onData: () => {},
       onClose: () => {},
       onError: () => {}
-    });
+    }, options);
+
+    //console.log(this.config.onData("test"));
 
     this.setupSocketEvents();
+  }
+
+  start() {
+    //setInterval(() => {
+      this.connect();
+    //}, 5 * 1000);
   }
 
   /**
@@ -71,11 +79,7 @@ export default class Requester {
         logger.info(`Connected to ${this.socket.remoteAddress}:${this.socket.remotePort}`);
         
         this.socket.setTimeout(this.config.timeout);
-
-        // Update stats every 5 minutes
-        setInterval(() => {
-          this.socket.write(`${this.message}\n`);
-        }, 5 * 1000 * 60);
+        this.socket.write(`${this.config.message}/n`);
 
         this.config.onConnect();
       })
@@ -88,7 +92,7 @@ export default class Requester {
 
       .on('data', data => {
         // Convert the data to json first
-        let data = data.toJSON();
+        data = JSON.parse(data);
 
         let hrAndShares = data.result[2].split(';');
 
@@ -110,12 +114,12 @@ export default class Requester {
           version: data.result[0],
           uptime: data.result[1],
           hashrate: {
-            total: hrAndShares[3],
+            total: hrAndShares[0],
             gpus: data.result[2].split(';'),
           },
           shares: {
-            total: hrAndShares[2],
-            rejected: hrAndShares[3]
+            total: hrAndShares[1],
+            rejected: hrAndShares[2]
           },
           ...getGpuTempsAndFanSpeeds(data.result[6].split(';')),
           pools: data.result[7].split(';')
@@ -126,6 +130,10 @@ export default class Requester {
 
       .on('close', () => {
         logger.info('Connection closed');
+
+        setTimeout(() => {
+          this.connect();
+        }, 5 * 1000);
 
         this.config.onClose();
       })
