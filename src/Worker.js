@@ -26,7 +26,9 @@ export default class Worker {
 
         this.miner = new Miner(this.config);
         this.requester = new Requester({
-            onData: (data) => console.log(data)
+            onData: (data) => {
+                this.asteroid.call('addWorkerStats', this.config.workerId, data)
+            }
         });
     }
 
@@ -97,11 +99,14 @@ export default class Worker {
         }
 
         // Sync up our miner with backend
-        if(running && !this.miner.isRunning) {
-            this.miner.start();
-            this.requester.connect();
-        } else if(!running && this.miner.isRunning) {
-            this.miner.stop();
+        if(running !== undefined) {
+            if(running && !this.miner.isRunning) {
+                this.miner.start();
+                this.requester.start();
+            } else if(!running && this.miner.isRunning) {
+                this.miner.stop();
+                this.requester.stop();
+            }
         }
     }
 

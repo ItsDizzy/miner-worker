@@ -32,6 +32,8 @@ export default class Requester {
    */
   resCount = 0;
 
+  shouldReconnect = false;
+
   constructor(options) {
     //console.log(options.onData("test"));
     this.config = Object.assign({
@@ -54,9 +56,13 @@ export default class Requester {
   }
 
   start() {
-    //setInterval(() => {
-      this.connect();
-    //}, 5 * 1000);
+    this.shouldReconnect = true;
+    this.connect();
+  }
+
+  stop() {
+    this.shouldReconnect = false;
+    this.disconnect();
   }
 
   /**
@@ -154,9 +160,11 @@ export default class Requester {
       .on('close', () => {
         logger.info('Connection closed');
 
-        setTimeout(() => {
-          this.connect();
-        }, 5 * 1000);
+        if(this.shouldReconnect) {
+          setTimeout(() => {
+            this.connect();
+          }, 5 * 1000);
+        }
 
         this.config.onClose();
       })
