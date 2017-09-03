@@ -1,7 +1,7 @@
 import { getLogger } from 'log4js';
 import path from 'path';
 import Miner from './Miner';
-import Requester from './Requester';
+import Requester from './revamp/Requester';
 
 import WebSocket from 'ws';
 import { createClass } from 'asteroid';
@@ -25,7 +25,9 @@ export default class Worker {
         this.config = config;
 
         this.miner = new Miner(this.config);
-        this.requester = new Requester(this.config, this.miner);
+        this.requester = new Requester({
+            onData: (data) => console.log(data)
+        });
     }
 
     /**
@@ -97,6 +99,7 @@ export default class Worker {
         // Sync up our miner with backend
         if(running && !this.miner.isRunning) {
             this.miner.start();
+            this.requester.connect();
         } else if(!running && this.miner.isRunning) {
             this.miner.stop();
         }
