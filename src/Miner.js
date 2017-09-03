@@ -101,7 +101,7 @@ export default class Miner {
      * Sets the miner's name
      * @param {String} name 
      */
-    setName(name) {
+    async setName(name) {
         this.name = name;
     }
 
@@ -109,7 +109,7 @@ export default class Miner {
      * Sets the miner's wallet
      * @param {String} wallet 
      */
-    setWallet(wallet) {
+    async setWallet(wallet) {
         this.wallet = wallet;
     }
 
@@ -117,7 +117,7 @@ export default class Miner {
      * Sets the miner's email address
      * @param {String} email 
      */
-    setEmail(email) {
+    async setEmail(email) {
         this.email = email;
     }
 

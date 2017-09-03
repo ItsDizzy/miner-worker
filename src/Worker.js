@@ -54,12 +54,14 @@ export default class Worker {
         this.asteroid.subscribe('Worker.currentWorker', this.config.workerId);
 
         this.asteroid.ddp.on('added', doc => {
+            logger.info(`[ddp]: onAdded: ${doc.collection}`);
             if(doc.collection === 'workers') {
                 this.handleWorkerDocUpdate(doc);
             }
         });
 
         this.asteroid.ddp.on('changed', doc => {
+            logger.info(`[ddp]: onChanged: ${doc.collection}`);
             if(doc.collection === 'workers') {
                 this.handleWorkerDocUpdate(doc);
             }
@@ -81,29 +83,44 @@ export default class Worker {
         });
     }
 
-    handleWorkerDocUpdate({fields: { running, name, wallet, email }}) {
+    async handleWorkerDocUpdate({fields: { running, name, wallet, email }}) {
+        
+        console.log(running, name, wallet, email);
+
+        // Setup miner information
+        // Information should only be
+        // changed when miner is not running
+        if(!this.miner.isRunning) {
+            await this.setupMiner(name, wallet, email);
+        }
+
         // Sync up our miner with backend
         if(running && !this.miner.isRunning) {
             this.miner.start();
         } else if(!running && this.miner.isRunning) {
             this.miner.stop();
         }
+    }
 
-        // Setup miner information
-        // Information should only be
-        // changed when miner is not running
-        if(!this.miner.isRunning) {
-            if(name && name !== this.miner.name) {
-                this.miner.setName(name);
-            }
+    async setupMiner(name, wallet, email) {
+        if(name && name !== this.miner.name) {
+            await this.miner.setName(name);
+        }
 
-            if(wallet && wallet !== this.miner.wallet) {
-                this.miner.setWallet(wallet);
-            }
+        if(wallet && wallet !== this.miner.wallet) {
+            await this.miner.setWallet(wallet);
+        }
 
-            if(email && email !== this.miner.email) {
-                this.miner.setEmail(email);
-            }
+        if(email && email !== this.miner.email) {
+            await this.miner.setEmail(email);
+        }
+    }
+
+    toggleMiner(running) {
+        if(running && !this.miner.isRunning) {
+            this.miner.start();
+        } else if(!running && this.miner.isRunning) {
+            this.miner.stop();
         }
     }
 
