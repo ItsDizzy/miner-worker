@@ -56,16 +56,34 @@ export default class Worker {
         // We need this in order to know if we should stop/start
         // We do this by tracking the Worker.running variable
         this.asteroid.subscribe('Worker.currentWorker', this.config.workerId);
+        this.asteroid.subscribe('Connection.current');
+
+        this.asteroid.loginWithPassword({email, password})
+        .catch(err => {
+            logger.error(err);
+        });
 
         this.asteroid.ddp.on('added', doc => {
-            logger.info(`[ddp]: onAdded: ${doc.collection}`);
+            logger.debug(`[ddp]: onAdded: ${doc.collection}`);
+
+            if(doc.collection === 'connections') {
+                if(doc.fields) {
+                    this.handleConnectionDocUpdate(doc);
+                }
+            }
+
             if(doc.collection === 'workers') {
                 this.handleWorkerDocUpdate(doc);
             }
         });
 
         this.asteroid.ddp.on('changed', doc => {
-            logger.info(`[ddp]: onChanged: ${doc.collection}`);
+            logger.debug(`[ddp]: onChanged: ${doc.collection}`);
+
+            if(doc.collection === 'connections') {
+                this.handleConnectionDocUpdate(doc);
+            }
+
             if(doc.collection === 'workers') {
                 this.handleWorkerDocUpdate(doc);
             }
@@ -74,11 +92,14 @@ export default class Worker {
         this.asteroid.ddp.on('connected', () => {
             logger.info(`[ddp]: Connected with backend ${endpoint}`);
 
-            this.asteroid.loginWithPassword({email, password})
-                .catch(err => {
-                    logger.error(err);
-                });
+            this.asteroid.call('registerWorker', this.config.workerId);
         });
+
+        this.asteroid.ddp.on('disconnected', () => {
+            logger.error(`[ddp]: Connection to backend lost :/`);
+            // We will stop all our activities
+            this.toggleMiner(false);
+        })
 
         this.asteroid.on('loggedIn', () => {
             logger.info(`[ddp]: Successfully logged in :)`);
@@ -87,9 +108,13 @@ export default class Worker {
         });
     }
 
+    handleConnectionDocUpdate({fields: { id, error }}) {
+        if(error) {
+            logger.error(`[ddp]: ${error}`);
+        }
+    }
+
     async handleWorkerDocUpdate({fields: { running, name, wallet, email }}) {
-        
-        console.log(running, name, wallet, email);
 
         // Setup miner information
         // Information should only be
@@ -99,15 +124,7 @@ export default class Worker {
         }
 
         // Sync up our miner with backend
-        if(running !== undefined) {
-            if(running && !this.miner.isRunning) {
-                this.miner.start();
-                this.requester.start();
-            } else if(!running && this.miner.isRunning) {
-                this.miner.stop();
-                this.requester.stop();
-            }
-        }
+        this.toggleMiner(running);
     }
 
     async setupMiner(name, wallet, email) {
@@ -125,10 +142,14 @@ export default class Worker {
     }
 
     toggleMiner(running) {
-        if(running && !this.miner.isRunning) {
-            this.miner.start();
-        } else if(!running && this.miner.isRunning) {
-            this.miner.stop();
+        if(running !== undefined) {
+            if(running && !this.miner.isRunning) {
+                this.miner.start();
+                this.requester.start();
+            } else if(!running && this.miner.isRunning) {
+                this.miner.stop();
+                this.requester.stop();
+            }
         }
     }
 
